@@ -1,0 +1,43 @@
+// batiment.things : fichier de configuration openHAB 4 (conf/things/)
+//
+// Dans openHAB 4, le broker MQTT est un « Bridge » ; chaque pièce est un « Thing » placé à
+// l'intérieur du Bridge. L'identifiant complet d'un canal est donc :
+//     mqtt:topic:mosquitto:<piece>:<canal>      ex. mqtt:topic:mosquitto:salleA:temperature
+//
+// host="localhost" : si openHAB tourne via le docker-compose fourni, il partage le réseau du
+// conteneur Mosquitto, donc « localhost » fonctionne aussi. (Dans une installation où openHAB
+// est dans un conteneur séparé, remplacer par le nom du service Mosquitto.)
+
+Bridge mqtt:broker:mosquitto [ host="localhost", port=1883, secure=false ]
+{
+    Thing topic salleA "Salle A" @ "Bâtiment" {
+        Channels:
+            Type number : temperature [ stateTopic="batiment/salleA/capteur/temperature" ]
+            Type number : luminosite  [ stateTopic="batiment/salleA/capteur/luminosite" ]
+            Type switch : occupation  [ stateTopic="batiment/salleA/capteur/occupation", on="true", off="false" ]
+            // Canal de commande du thermostat : openHAB PUBLIE sur commandTopic quand on envoie une commande
+            // à l'Item, et LIT stateTopic (même topic) pour afficher la consigne courante.
+            Type number : thermostat  [ stateTopic="batiment/salleA/actuateur/thermostat",
+                                        commandTopic="batiment/salleA/actuateur/thermostat" ]
+    }
+    Thing topic salleB "Salle B" @ "Bâtiment" {
+        Channels:
+            Type number : temperature [ stateTopic="batiment/salleB/capteur/temperature" ]
+            Type number : luminosite  [ stateTopic="batiment/salleB/capteur/luminosite" ]
+            Type switch : occupation  [ stateTopic="batiment/salleB/capteur/occupation", on="true", off="false" ]
+            // Canal de commande du thermostat : openHAB PUBLIE sur commandTopic quand on envoie une commande
+            // à l'Item, et LIT stateTopic (même topic) pour afficher la consigne courante.
+            Type number : thermostat  [ stateTopic="batiment/salleB/actuateur/thermostat",
+                                        commandTopic="batiment/salleB/actuateur/thermostat" ]
+    }
+    Thing topic cuisine "Cuisine" @ "Bâtiment" {
+        Channels:
+            Type number : temperature [ stateTopic="batiment/cuisine/capteur/temperature" ]
+            Type number : luminosite  [ stateTopic="batiment/cuisine/capteur/luminosite" ]
+            Type switch : occupation  [ stateTopic="batiment/cuisine/capteur/occupation", on="true", off="false" ]
+            // Canal de commande du thermostat : openHAB PUBLIE sur commandTopic quand on envoie une commande
+            // à l'Item, et LIT stateTopic (même topic) pour afficher la consigne courante.
+            Type number : thermostat  [ stateTopic="batiment/cuisine/actuateur/thermostat",
+                                        commandTopic="batiment/cuisine/actuateur/thermostat" ]
+    }
+}

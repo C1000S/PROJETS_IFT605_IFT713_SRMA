@@ -1,0 +1,38 @@
+# Infrastructure du projet : broker MQTT (Mosquitto) + openHAB 4.
+#
+#   docker compose up -d        démarre les deux conteneurs
+#   docker compose logs -f openhab
+#   docker compose down         arrête tout
+#
+# Astuce réseau : openHAB utilise « network_mode: service:mosquitto », c'est-à-dire qu'il partage la
+# pile réseau du conteneur Mosquitto. Pour openHAB, le broker est donc simplement « localhost:1883 »
+# (comme dans l'énoncé), sur Linux, macOS et Windows. Conséquence : les ports sont publiés sur le
+# service mosquitto (1883 pour MQTT, 8080 pour l'interface web d'openHAB).
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: smartagent-mosquitto
+    ports:
+      - "1883:1883"   # MQTT
+      - "8080:8080"   # interface web openHAB (le conteneur openhab partage ce réseau)
+    volumes:
+      - ./docker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+  openhab:
+    # Si ce tag est introuvable, utiliser une autre version 4.x (https://hub.docker.com/r/openhab/openhab/tags)
+    image: openhab/openhab:4.3.0
+    container_name: smartagent-openhab
+    network_mode: "service:mosquitto"
+    depends_on:
+      - mosquitto
+    environment:
+      OPENHAB_HTTP_PORT: "8080"
+      # Sous Linux, décommenter pour que les fichiers de conf-openhab/ restent modifiables par vous :
+      # USER_ID: "1000"
+      # GROUP_ID: "1000"
+    volumes:
+      - ./conf-openhab:/openhab/conf              # nos fichiers .things / .items / .rules / .sitemap
+      - ./openhab-data/userdata:/openhab/userdata # base de données et réglages d'openHAB
+      - ./openhab-data/addons:/openhab/addons
+    restart: unless-stopped

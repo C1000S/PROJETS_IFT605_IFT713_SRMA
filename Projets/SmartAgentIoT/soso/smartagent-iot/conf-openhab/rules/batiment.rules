@@ -1,0 +1,96 @@
+// batiment.rules : règles DSL openHAB (conf/rules/)
+
+// ------------------------------------------------------------------------------------------
+// 1. ÉCONOMIE D'ÉNERGIE : pièce vide -> consigne abaissée à 18 °C ; pièce réoccupée -> 21 °C.
+//    sendCommand() sur l'Item thermostat publie la consigne sur MQTT
+//    (batiment/{piece}/actuateur/thermostat) grâce au commandTopic du canal.
+// ------------------------------------------------------------------------------------------
+
+rule "Economie energie SalleA"
+when
+    Item SalleA_Occupation changed to OFF
+then
+    logInfo("batiment", "Salle A vide : consigne abaissée à 18 °C")
+    SalleA_Thermostat.sendCommand(18)
+end
+
+rule "Confort SalleA"
+when
+    Item SalleA_Occupation changed to ON
+then
+    logInfo("batiment", "Salle A occupée : consigne remontée à 21 °C")
+    SalleA_Thermostat.sendCommand(21)
+end
+
+rule "Economie energie SalleB"
+when
+    Item SalleB_Occupation changed to OFF
+then
+    logInfo("batiment", "Salle B vide : consigne abaissée à 18 °C")
+    SalleB_Thermostat.sendCommand(18)
+end
+
+rule "Confort SalleB"
+when
+    Item SalleB_Occupation changed to ON
+then
+    logInfo("batiment", "Salle B occupée : consigne remontée à 21 °C")
+    SalleB_Thermostat.sendCommand(21)
+end
+
+rule "Economie energie Cuisine"
+when
+    Item Cuisine_Occupation changed to OFF
+then
+    logInfo("batiment", "Cuisine vide : consigne abaissée à 18 °C")
+    Cuisine_Thermostat.sendCommand(18)
+end
+
+rule "Confort Cuisine"
+when
+    Item Cuisine_Occupation changed to ON
+then
+    logInfo("batiment", "Cuisine occupée : consigne remontée à 21 °C")
+    Cuisine_Thermostat.sendCommand(21)
+end
+
+// ------------------------------------------------------------------------------------------
+// 2. ALERTE SURCHAUFFE : n'importe quelle température du groupe dépasse 28 °C.
+//    « triggeringItem » désigne l'Item membre du groupe qui a changé.
+//    Le test instanceof Number évite une erreur quand l'état est UNDEF ou NULL.
+// ------------------------------------------------------------------------------------------
+rule "Alerte surchauffe"
+when
+    Member of gTemperatures changed
+then
+    if (triggeringItem.state instanceof Number) {
+        val t = (triggeringItem.state as Number).doubleValue
+        if (t > 28.0) {
+            Alerte_Batiment.postUpdate("SURCHAUFFE " + triggeringItem.name + " : " + t + " °C")
+            logWarn("batiment", "SURCHAUFFE " + triggeringItem.name + " = " + t)
+        }
+    }
+end
+
+// ------------------------------------------------------------------------------------------
+// 3. CAPTEUR HORS LIGNE : un capteur de température passe à UNDEF (expire de 30 s, voir .items).
+// ------------------------------------------------------------------------------------------
+rule "Alerte capteur hors ligne"
+when
+    Member of gTemperatures changed to UNDEF
+then
+    Alerte_Batiment.postUpdate("CAPTEUR HORS LIGNE : " + triggeringItem.name)
+    logWarn("batiment", "Capteur hors ligne : " + triggeringItem.name)
+end
+
+// ------------------------------------------------------------------------------------------
+// 4. INTÉGRATION COORDINATEUR (REST) : le coordinateur Java met à jour l'Item
+//    Batiment_DernierEquilibrage via l'API REST ; cette règle réagit à cette mise à jour.
+// ------------------------------------------------------------------------------------------
+rule "Equilibrage signale par le coordinateur"
+when
+    Item Batiment_DernierEquilibrage received update
+then
+    Alerte_Batiment.postUpdate("Équilibrage thermique : " + Batiment_DernierEquilibrage.state.toString)
+    logInfo("batiment", "Le coordinateur a rééquilibré : " + Batiment_DernierEquilibrage.state.toString)
+end

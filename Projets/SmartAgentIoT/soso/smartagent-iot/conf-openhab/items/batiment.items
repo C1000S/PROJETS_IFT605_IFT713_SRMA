@@ -1,0 +1,31 @@
+// batiment.items : Items openHAB (conf/items/)
+//
+// expire="30s,state=UNDEF" : si l'Item ne reçoit aucune mise à jour pendant 30 s, son état passe à
+// UNDEF. C'est la fonction « expire » intégrée au cœur d'openHAB (pas d'add-on à installer) ; elle
+// répond à l'exigence « openHAB affiche UNDEF sur l'Item correspondant » (tâche 3.1).
+
+Group gTemperatures "Températures du bâtiment"
+
+// --- Informations envoyées par le coordinateur via l'API REST ---
+String Batiment_EtatAgents          "État des agents [%s]"
+String Batiment_DernierEquilibrage  "Dernier équilibrage [%s]"
+String Alerte_Batiment              "Alerte [%s]"
+
+// --- Salle A ---
+Number SalleA_Temperature "Température Salle A [%.1f]" <temperature> (gTemperatures) { channel="mqtt:topic:mosquitto:salleA:temperature", expire="30s,state=UNDEF" }
+Number SalleA_Luminosite  "Luminosité Salle A [%d lx]" <light>  { channel="mqtt:topic:mosquitto:salleA:luminosite", expire="30s,state=UNDEF" }
+Switch SalleA_Occupation  "Occupation Salle A" <motion> { channel="mqtt:topic:mosquitto:salleA:occupation", expire="30s,state=UNDEF" }
+Number SalleA_Thermostat  "Consigne Salle A [%.1f °C]" <heating> { channel="mqtt:topic:mosquitto:salleA:thermostat" }
+
+// --- Salle B ---
+Number SalleB_Temperature "Température Salle B [%.1f]" <temperature> (gTemperatures) { channel="mqtt:topic:mosquitto:salleB:temperature", expire="30s,state=UNDEF" }
+Number SalleB_Luminosite  "Luminosité Salle B [%d lx]" <light>  { channel="mqtt:topic:mosquitto:salleB:luminosite", expire="30s,state=UNDEF" }
+Switch SalleB_Occupation  "Occupation Salle B" <motion> { channel="mqtt:topic:mosquitto:salleB:occupation", expire="30s,state=UNDEF" }
+Number SalleB_Thermostat  "Consigne Salle B [%.1f °C]" <heating> { channel="mqtt:topic:mosquitto:salleB:thermostat" }
+
+// --- Cuisine ---
+Number Cuisine_Temperature "Température Cuisine [%.1f]" <temperature> (gTemperatures) { channel="mqtt:topic:mosquitto:cuisine:temperature", expire="30s,state=UNDEF" }
+Number Cuisine_Luminosite  "Luminosité Cuisine [%d lx]" <light>  { channel="mqtt:topic:mosquitto:cuisine:luminosite", expire="30s,state=UNDEF" }
+Switch Cuisine_Occupation  "Occupation Cuisine" <motion> { channel="mqtt:topic:mosquitto:cuisine:occupation", expire="30s,state=UNDEF" }
+Number Cuisine_Thermostat  "Consigne Cuisine [%.1f °C]" <heating> { channel="mqtt:topic:mosquitto:cuisine:thermostat" }
+
