@@ -1,0 +1,14 @@
+﻿# Fichiers générés par Maven
+**/target/
+
+# Fichiers Java compilés et journaux
+*.class
+*.log
+
+# Fichiers locaux potentiellement sensibles
+.env
+.env.*
+!.env.example
+*credentials*
+*secret*
+*token*

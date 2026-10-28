@@ -1,0 +1,67 @@
+Bridge mqtt:broker:mosquittoLocal "MosquittoLocal" [
+    host="localhost",
+    port=1883,
+    secure=false
+] {
+}
+
+Thing mqtt:topic:salleA "Salle A" (mqtt:broker:mosquittoLocal) {
+    Channels:
+        Type number : temperature "Température" [
+            stateTopic="batiment/salleA/capteur/temperature"
+        ]
+        Type number : luminosite "Luminosité" [
+            stateTopic="batiment/salleA/capteur/luminosite"
+        ]
+        Type switch : occupation "Occupation" [
+            stateTopic="batiment/salleA/capteur/occupation",
+            on="true",
+            off="false"
+        ]
+        Type number : thermostat "Consigne thermostat" [
+            commandTopic="batiment/salleA/actuateur/thermostat",
+            formatBeforePublish="%.1f"
+        ]
+
+}
+
+Thing mqtt:topic:salleB "Salle B" (mqtt:broker:mosquittoLocal) {
+    Channels:
+        Type number : temperature "Température" [
+            stateTopic="batiment/salleB/capteur/temperature"
+        ]
+        Type number : luminosite "Luminosité" [
+            stateTopic="batiment/salleB/capteur/luminosite"
+        ]
+        Type switch : occupation "Occupation" [
+            stateTopic="batiment/salleB/capteur/occupation",
+            on="true",
+            off="false"
+        ]
+        
+        Type number : thermostat "Consigne thermostat" [
+            commandTopic="batiment/salleB/actuateur/thermostat",
+            formatBeforePublish="%.1f"
+        ]
+
+}
+
+Thing mqtt:topic:cuisine "Cuisine" (mqtt:broker:mosquittoLocal) {
+    Channels:
+        Type number : temperature "Température" [
+            stateTopic="batiment/cuisine/capteur/temperature"
+        ]
+        Type number : luminosite "Luminosité" [
+            stateTopic="batiment/cuisine/capteur/luminosite"
+        ]
+        Type switch : occupation "Occupation" [
+            stateTopic="batiment/cuisine/capteur/occupation",
+            on="true",
+            off="false"
+        ]
+        Type number : thermostat "Consigne thermostat" [
+            commandTopic="batiment/cuisine/actuateur/thermostat",
+            formatBeforePublish="%.1f"
+        ]
+
+}

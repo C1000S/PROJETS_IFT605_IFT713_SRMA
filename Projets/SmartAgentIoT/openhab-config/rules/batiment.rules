@@ -1,0 +1,21 @@
+import java.lang.Number
+
+rule "Economie energie salleA"
+when
+    Item SalleA_Occupation changed to OFF
+then
+    SalleA_Thermostat.sendCommand(18)
+    logInfo("SmartAgent", "Salle A inoccupée : consigne thermostat fixée à 18 °C")
+end
+
+rule "Alerte temperature salleA"
+when
+    Item SalleA_Temperature changed
+then
+    if (SalleA_Temperature.state instanceof Number) {
+        val temperature = (SalleA_Temperature.state as Number).doubleValue
+        if (temperature > 28.0) {
+            logWarn("SmartAgent", "ALERTE : température élevée dans Salle A : {} °C", temperature)
+        }
+    }
+end

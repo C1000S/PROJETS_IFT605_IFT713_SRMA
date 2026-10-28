@@ -1,0 +1,47 @@
+Group gBatiment "Bâtiment intelligent"
+
+Group gSalleA "Salle A" (gBatiment)
+Group gSalleB "Salle B" (gBatiment)
+Group gCuisine "Cuisine" (gBatiment)
+
+// Capteurs de la salle A
+Number SalleA_Temperature "Température [%.1f °C]" (gSalleA) {
+    channel="mqtt:topic:salleA:temperature"
+}
+Number SalleA_Luminosite "Luminosité [%.0f lux]" (gSalleA) {
+    channel="mqtt:topic:salleA:luminosite"
+}
+Switch SalleA_Occupation "Occupation" (gSalleA) {
+    channel="mqtt:topic:salleA:occupation"
+}
+Number SalleA_Thermostat "Consigne thermostat [%.1f °C]" (gSalleA) {
+    channel="mqtt:topic:salleA:thermostat"
+}
+
+// Capteurs de la salle B
+Number SalleB_Temperature "Température [%.1f °C]" (gSalleB) {
+    channel="mqtt:topic:salleB:temperature"
+}
+Number SalleB_Luminosite "Luminosité [%.0f lux]" (gSalleB) {
+    channel="mqtt:topic:salleB:luminosite"
+}
+Switch SalleB_Occupation "Occupation" (gSalleB) {
+    channel="mqtt:topic:salleB:occupation"
+}
+Number SalleB_Thermostat "Consigne thermostat [%.1f °C]" (gSalleB) {
+    channel="mqtt:topic:salleB:thermostat"
+}
+
+// Capteurs de la cuisine
+Number Cuisine_Temperature "Température [%.1f °C]" (gCuisine) {
+    channel="mqtt:topic:cuisine:temperature"
+}
+Number Cuisine_Luminosite "Luminosité [%.0f lux]" (gCuisine) {
+    channel="mqtt:topic:cuisine:luminosite"
+}
+Switch Cuisine_Occupation "Occupation" (gCuisine) {
+    channel="mqtt:topic:cuisine:occupation"
+}
+Number Cuisine_Thermostat "Consigne thermostat [%.1f °C]" (gCuisine) {
+    channel="mqtt:topic:cuisine:thermostat"
+}
