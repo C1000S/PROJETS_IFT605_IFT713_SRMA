@@ -9,8 +9,9 @@ openhab/userdata/
 openhab/addons/*
 !openhab/addons/.gitkeep
 
-# Logs
+# Logs (y compris le dossier runtime créé par scripts/start-all.sh)
 *.log
+logs/
 
 # IDE
 .idea/

@@ -1,19 +1,27 @@
 # SmartAgent-IoT — infrastructure (Semaine 1)
 #
 # Deux services : le broker MQTT (Mosquitto) et le tableau de bord (openHAB).
-# On utilise network_mode: host pour que :
-#   - openHAB puisse joindre le broker via "localhost:1883" (exactement comme
-#     dans batiment.things fourni par l'énoncé : host="localhost")
-#   - les agents Java lancés directement sur la machine (hors Docker) puissent
-#     eux aussi publier/s'abonner sur "localhost:1883" et interroger l'API REST
-#     openHAB sur "localhost:8080" sans configuration réseau supplémentaire.
-# (network_mode: host ne fonctionne que sous Linux — cohérent avec cette machine.)
+#
+# Réseau PORTABLE (Linux, macOS ET Windows/Docker Desktop) :
+#   - mosquitto publie les ports 1883 (MQTT) et 8080 (UI/REST openHAB) sur l'hôte ;
+#   - openHAB utilise network_mode: "service:mosquitto", c.-à-d. qu'il PARTAGE la
+#     pile réseau de mosquitto. Conséquences :
+#       * openHAB joint le broker via "localhost:1883" -> le Thing mqtt:broker de
+#         batiment.things (host="localhost") reste valide tel quel ;
+#       * le port 8080 d'openHAB est exposé via les ports publiés de mosquitto ;
+#       * les apps Java lancées sur l'hôte (capteurs/agents/coordinateur) joignent
+#         "localhost:1883" et "localhost:8080" via les ports publiés.
+#   (On évite volontairement network_mode: host, qui n'existe que sous Linux.)
 services:
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: smartagent-mosquitto
     restart: unless-stopped
-    network_mode: host
+    # Ports publiés (portable). 8080 est publié ICI car le conteneur openhab
+    # partage ce réseau (network_mode: service:mosquitto).
+    ports:
+      - "1883:1883"   # MQTT  — capteurs / agents / coordinateur Java sur l'hôte
+      - "8080:8080"   # UI + API REST openHAB
     volumes:
       - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto-data:/mosquitto/data
@@ -26,7 +34,11 @@ services:
     image: openhab/openhab:4.3.11-debian
     container_name: smartagent-openhab
     restart: unless-stopped
-    network_mode: host
+    # Partage la pile réseau de mosquitto : openHAB joint le broker en
+    # "localhost:1883" (batiment.things host="localhost" reste valide) et son
+    # port 8080 sort via les ports publiés de mosquitto. (Pas de bloc "ports:"
+    # possible ici tant qu'on partage le réseau d'un autre service.)
+    network_mode: "service:mosquitto"
     depends_on:
       - mosquitto
     environment:
