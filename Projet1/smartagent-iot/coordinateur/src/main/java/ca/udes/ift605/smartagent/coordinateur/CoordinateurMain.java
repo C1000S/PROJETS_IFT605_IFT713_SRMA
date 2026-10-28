@@ -50,7 +50,14 @@ public class CoordinateurMain {
                 new String[]{"salleB", "cuisine"}
         );
 
-        CoordinateurBatiment coordinateur = new CoordinateurBatiment(agents, pairesAdjacentes);
+        // S3 — intégration openHAB via REST. URL configurable par propriété
+        // système (-Dopenhab.url=...), localhost:8080 par défaut. L'intégration
+        // est best-effort : openHAB peut être absent sans gêner l'équilibrage.
+        String openhabUrl = System.getProperty("openhab.url", "http://localhost:8080");
+        OpenHabRestClient openhab = new OpenHabRestClient(openhabUrl);
+        System.out.println("[Coordinateur] notifications openHAB REST -> " + openhabUrl + " (Item Batiment_Coordination)");
+
+        CoordinateurBatiment coordinateur = new CoordinateurBatiment(agents, pairesAdjacentes, openhab);
 
         System.out.println("Coordinateur démarré, cycle toutes les " + (PERIODE_MS / 1000) + "s. Ctrl+C pour arrêter.");
         while (true) {

@@ -4,6 +4,7 @@ import ca.udes.ift605.smartagent.agent.IAgentPiece;
 
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -32,10 +33,27 @@ public class CoordinateurBatiment {
 
     private final Map<String, IAgentPiece> agents;
     private final List<String[]> pairesAdjacentes;
+    /**
+     * Client REST openHAB (S3), ou {@code null} si l'intégration est désactivée.
+     * Permet de tester la politique pure sans dépendre d'openHAB, et de lancer
+     * le coordinateur même quand openHAB n'est pas démarré.
+     */
+    private final OpenHabRestClient openhab;
 
+    /** Constructeur sans intégration openHAB (politique RMI/MQTT pure). */
     public CoordinateurBatiment(Map<String, IAgentPiece> agents, List<String[]> pairesAdjacentes) {
+        this(agents, pairesAdjacentes, null);
+    }
+
+    /**
+     * @param openhab client REST openHAB pour notifier les décisions (S3), ou
+     *                {@code null} pour désactiver cette intégration.
+     */
+    public CoordinateurBatiment(Map<String, IAgentPiece> agents, List<String[]> pairesAdjacentes,
+                                OpenHabRestClient openhab) {
         this.agents = agents;
         this.pairesAdjacentes = pairesAdjacentes;
+        this.openhab = openhab;
     }
 
     /** Un cycle complet d'équilibrage sur toutes les paires adjacentes connues. */
@@ -92,5 +110,17 @@ public class CoordinateurBatiment {
         System.out.printf(
                 "[Coordinateur] DESEQUILIBRE %s(%.1f) / %s(%.1f) -> écart %.1f > seuil %.1f : consigne %.1f envoyée à %s%n",
                 nomA, tempA, nomB, tempB, ecart, SEUIL_ECART, consigneCible, nomChaud);
+
+        // S3 — en plus de la voie RMI→MQTT ci-dessus, on notifie openHAB par son
+        // API REST : on pousse un résumé de la décision sur l'Item
+        // Batiment_Coordination, ce qui déclenche la règle DSL « Coordination
+        // batiment ». Best-effort : si openHAB est absent, envoyerCommande()
+        // journalise et renvoie false sans jamais interrompre le cycle (Tâche 3.1).
+        if (openhab != null) {
+            String decision = String.format(Locale.US,
+                    "%s: consigne %.1fC (desequilibre %s/%s, ecart %.1fC)",
+                    nomChaud, consigneCible, nomA, nomB, ecart);
+            openhab.envoyerCommande("Batiment_Coordination", decision);
+        }
     }
 }

@@ -3,6 +3,7 @@ package ca.udes.ift605.smartagent.agent;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.ExportException;
+import java.util.List;
 
 /**
  * Lance UN agent pour UNE pièce, dans son propre processus JVM — c'est
@@ -32,13 +33,29 @@ public class AgentPieceMain {
 
         Registry registre = obtenirOuCreerRegistre();
 
-        AgentPiece agent = new AgentPiece(piece);
+        // S2 — on fournit à l'agent la liste de ses voisins pour qu'il les
+        // consulte directement via RMI (en plus du coordinateur central).
+        List<String> voisins = voisinsDe(piece);
+        AgentPiece agent = new AgentPiece(piece, voisins);
         String nomEnregistrement = "agent-" + piece;
         registre.rebind(nomEnregistrement, agent);
 
         System.out.println("AgentPiece[" + piece + "] enregistré sous '" + nomEnregistrement +
                 "' dans le registre RMI (localhost:" + PORT_REGISTRE + ")");
         System.out.println("En attente d'appels RMI et de messages MQTT... (Ctrl+C pour arrêter)");
+    }
+
+    /**
+     * Adjacence imposée par l'énoncé : salleA–salleB et salleB–cuisine.
+     * salleB est donc au centre et a deux voisins ; salleA et cuisine en ont un.
+     */
+    private static List<String> voisinsDe(String piece) {
+        return switch (piece) {
+            case "salleA" -> List.of("salleB");
+            case "salleB" -> List.of("salleA", "cuisine");
+            case "cuisine" -> List.of("salleB");
+            default -> List.of();
+        };
     }
 
     private static Registry obtenirOuCreerRegistre() throws Exception {

@@ -1,12 +1,11 @@
 # Guide d'implémentation — SmartAgent-IoT
 
-Ce guide permet de reconstruire tout le projet **à la main, de zéro, sur une machine neuve**, sans avoir à redécouvrir les pièges déjà rencontrés pendant le développement. Le code donné ici est la version **finale et corrigée** (pas notre parcours réel, qui a contenu plusieurs bugs — ils sont documentés en encadré "⚠ Piège" à l'endroit où on les aurait rencontrés, pour comprendre pourquoi le code est écrit ainsi).
-
-Chaque section correspond à une tâche de l'énoncé du projet (IFT605/IFT713, SmartAgent-IoT). Suivre l'ordre : chaque étape dépend de la précédente.
+* [ ]
+* [ ]
 
 ---
 
-# Partie A — Comprendre les outils avant de coder 
+# Partie A — Comprendre les outils avant de coder
 
 Cette partie explique **pourquoi** chaque outil existe et **ce qu'il fait vraiment**, avec des images simples, avant de plonger dans le code (Partie B). Si tu es à l'aise avec les concepts de systèmes répartis, tu peux sauter directement à la Partie B.
 
@@ -1354,6 +1353,34 @@ java -jar sensor-simulator/target/sensor-simulator.jar salleA &
 
 ---
 
+## 9bis. Compléments d'objectifs S2/S3 (au-delà du barème strict)
+
+L'énoncé liste deux objectifs hebdomadaires qui ne figurent pas explicitement dans le barème /100 mais qui complètent l'architecture. Ils sont désormais implémentés.
+
+### 9bis.1 Consultation agent ↔ agent via RMI (objectif S2 : « les agents se consultent mutuellement »)
+
+En plus du `CoordinateurBatiment` **centralisé**, chaque `AgentPiece` consulte **directement** ses voisins, en **pair-à-pair**, sans intermédiaire. C'est un vrai échange agent↔agent, distinct de la supervision centrale.
+
+- `AgentPieceMain` fournit à chaque agent la liste de ses voisins selon l'adjacence imposée (`salleA↔salleB`, `salleB↔cuisine`) via le constructeur `new AgentPiece(piece, voisins)`.
+- Un thread daemon dédié (`consultation-<piece>`) fait, toutes les 10 s, un `registre.lookup("agent-<voisin>")` puis appelle `getTemperature()` sur le stub du voisin et journalise la comparaison :
+  `[agent-salleA] consultation RMI de salleB : 20.0°C (ma temp 17.0°C, écart 3.0°C)`
+- Les dernières températures des voisins sont exposées dans `getEtatJson()` sous la clé `voisins`, p. ex. `"voisins":{"salleB":20.5,"cuisine":23.6}` — c'est le **partage d'état** demandé.
+- **Tolérance aux pannes** : un voisin pas encore démarré (`NotBoundException`) ou tombé (`RemoteException`) est simplement ignoré ce cycle-là, sans jamais interrompre la consultation des autres voisins — même discipline qu'à la Tâche 3.1.
+
+### 9bis.2 Intégration coordinateur → règles openHAB via l'API REST (objectif S3)
+
+En plus de la voie `RMI → MQTT` (le coordinateur appelle `setConsigneTemperature`, l'agent publie sur `.../actuateur/thermostat`), le coordinateur notifie **directement** openHAB par son API REST.
+
+- Nouvelle classe `OpenHabRestClient` (module `coordinateur`), basée sur `java.net.http.HttpClient` du JDK (**aucune dépendance Maven ajoutée**). Un `POST /rest/items/{item}` envoie une **commande** à un Item.
+- À chaque décision d'équilibrage, le coordinateur pousse un résumé sur l'Item `Batiment_Coordination` :
+  `POST /rest/items/Batiment_Coordination  →  "salleA: consigne 24.0C (desequilibre salleA/salleB, ecart 8.0C)"`
+- Côté openHAB : l'Item `Batiment_Coordination` (sans canal MQTT) et la règle DSL `"Coordination batiment"` (déclenchée sur son changement) matérialisent le **pont coordinateur ↔ règles openHAB**. L'Item est aussi affiché dans le sitemap.
+- **Best-effort** : si openHAB est absent, `envoyerCommande()` journalise et renvoie `false` sans jamais propager d'exception ni interrompre le cycle d'équilibrage. L'intégration est donc activable/désactivable (`CoordinateurBatiment` accepte un `OpenHabRestClient` nullable ; URL configurable par `-Dopenhab.url=...`).
+
+> **Correction openHAB** : les Items de capteur utilisaient `profile="expire"` **et** `expire="30s,state=UNDEF"`. Or `expire` est une **métadonnée** d'Item, pas un *profile* de lien (il n'existe aucun profile nommé `expire`). Le `profile="expire"` erroné a été retiré ; seule la métadonnée `expire` subsiste, qui est la forme correcte.
+
+---
+
 ## 10. Tests JUnit
 
 Tester la **logique pure** du coordinateur plutôt que RMI/MQTT en direct (ce qui en ferait un test d'intégration lent et fragile).
@@ -1532,3 +1559,122 @@ java -cp coordinateur/target/coordinateur.jar ca.udes.ift605.smartagent.coordina
 ## 13. Générer le rapport
 
 Le rapport PDF est un livrable séparé (30% de la note) : voir `rapport/Rapport_SmartAgentIoT.docx` dans ce dépôt, qui contient déjà l'architecture, les choix de conception et ces mêmes difficultés documentées en détail. Compléter les captures d'écran, les noms d'équipe et la réflexion personnelle avant de l'exporter en PDF.
+
+---
+
+## 14. Script de préparation à la démonstration (barème /100)
+
+Pour chaque critère : la commande exacte à exécuter, le résultat attendu à l'écran, et les questions probables de l'enseignante avec la réponse à donner. À répéter au moins une fois en entier avant le jour J, dans l'ordre.
+
+### 14.1 MQTT — Pub/Sub (15 pts)
+
+```bash
+docker compose up -d   # si pas déjà lancé
+mosquitto_sub -h localhost -t 'batiment/#' -v
+```
+
+**Montrer** : les 9 flux (3 pièces × température/luminosité/occupation) qui arrivent toutes les 5 secondes.
+
+**Questions probables** :
+
+- *"Pourquoi ces plages de valeurs ?"* → 17-26°C confort réaliste, 0-800 lux, 40% occupation — documenté dans `CapteurSimulateur.java`.
+- *"Pourquoi `retained=true` ?"* → un nouvel abonné (agent, openHAB) reçoit la dernière valeur immédiatement plutôt que d'attendre jusqu'à 5s.
+- *"Pourquoi QoS 0 pour les capteurs mais QoS 1 pour le thermostat ?"* → une mesure perdue n'est pas grave (une nouvelle arrive dans 5s), une commande d'actuateur si.
+
+### 14.2 openHAB Things (10 pts)
+
+Ouvrir dans le navigateur : **`http://localhost:8080/basicui/app?sitemap=batiment`**
+
+⚠ Ne PAS ouvrir `http://localhost:8080/` seul — cette page (Main UI) reste vide, voir 3.5/7.7 du guide.
+
+**Montrer** : les 3 pièces avec température/luminosité/occupation/thermostat en direct, valeurs qui changent en restant sur la page.
+
+**Questions probables** :
+
+- *"Comment sont branchés les Things aux capteurs ?"* → `batiment.things` déclare un `mqtt:broker` (le pont) et 3 `mqtt:topic` (un par pièce) avec 4 canaux chacun.
+- *"Pourquoi Basic UI et pas la Main UI par défaut ?"* → Basic UI génère le tableau de bord automatiquement à partir d'un fichier texte (`batiment.sitemap`), cohérent avec le reste de la config versionnée ; la Main UI resterait vide sans construction manuelle de pages.
+
+### 14.3 openHAB Rules (10 pts)
+
+```bash
+# Règle d'alerte (déclenchement immédiat et fiable) :
+mosquitto_pub -h localhost -t 'batiment/salleA/capteur/temperature' -m '31.5' -r
+tail -f openhab/userdata/logs/openhab.log   # chercher la ligne "ALERTE: SalleA hors plage"
+```
+
+Pour l'économie d'énergie, attendre qu'une occupation passe naturellement à OFF (arrive spontanément, ~toutes les 10-15s en moyenne vu la probabilité de 40%), ou observer que `SalleA_Thermostat`/`SalleB_Thermostat`/`Cuisine_Thermostat` sont déjà à 18 dans le tableau de bord — signe qu'elle s'est déjà déclenchée.
+
+**Questions probables** :
+
+- *"Pourquoi une règle par pièce plutôt qu'une règle générique ?"* → une première version générique (Map + `triggeringItem`) a échoué dans ce moteur DSL restreint (voir piège #4) ; la version explicite est plus verbeuse mais garantie fiable.
+- *"Où sont regroupées les déclarations `val` ?"* → obligatoirement en haut du fichier, avant toute `rule` (piège #3).
+
+### 14.4 Java RMI (20 pts)
+
+```bash
+# Montrer les 3 agents déjà enregistrés (logs de démarrage), puis :
+java -cp agent-piece/target/agent-piece.jar ca.udes.ift605.smartagent.agent.AgentPieceTestClient salleA 21.0
+```
+
+**Montrer** : lecture des 3 valeurs + `getEtatJson()` + confirmation d'envoi de consigne, depuis un 4e processus séparé.
+
+**Questions probables** :
+
+- *"Pourquoi toutes les méthodes déclarent `RemoteException` ?"* → un appel réseau peut échouer à tout moment, contrairement à un appel local.
+- *"Comment le registre RMI est-il partagé entre 3 processus indépendants ?"* → chaque `AgentPieceMain` essaie de CRÉER le registre (port 2199), et si déjà pris, s'y CONNECTE (voir `obtenirOuCreerRegistre()`).
+- *"Pourquoi `volatile` sur les champs de `AgentPiece` ?"* → écrits par le thread MQTT, lus par les threads RMI — deux threads distincts, `volatile` évite qu'un thread lise une valeur périmée en cache CPU.
+- *"getEtatJson() ou getEtat() ?"* → l'énoncé se contredit (texte du contrat vs squelette de code) ; choix documenté de suivre le texte du contrat, à mentionner si posée.
+
+### 14.5 Coordinateur (10 pts)
+
+```bash
+( for i in $(seq 1 20); do mosquitto_pub -h localhost -t 'batiment/salleA/capteur/temperature' -m '28.5' -r; sleep 0.3; done ) &
+tail -f "$SCRATCH/logs/coordinateur.log"   # ou le terminal où il tourne
+```
+
+**Montrer** : la ligne `DESEQUILIBRE salleA(28.5) / salleB(...) -> ... consigne ... envoyée à salleA`, puis confirmer dans le tableau de bord que `SalleA_Thermostat` a changé.
+
+**Questions probables** :
+
+- *"Pourquoi la moyenne plutôt qu'aligner sur la pièce froide ?"* → éviter un choc thermique brutal (ex. 28°C→20°C d'un coup) ; la moyenne rapproche progressivement, le cycle suivant (10s) affine si besoin.
+- *"Que se passe-t-il si un agent est injoignable ?"* → `RemoteException` capturée par paire, journalisée, le cycle continue avec les autres paires (voir test JUnit `unAgentInjoignableNInterrompPasLesAutresPaires`).
+
+### 14.6 Tolérance aux pannes (10 pts)
+
+C'est le point le plus long à démontrer (30s d'attente incompressible) — prévoir le timing dans les 10 minutes.
+
+```bash
+# 1. État avant panne : montrer les 3 pièces normales dans le tableau de bord.
+# 2. Couper UNE pièce (retrouver le PID du job sim-salleA, ou):
+pkill -f "sensor-simulator.jar salleA"
+# 3. Attendre >30s en meublant avec une question/explication, puis montrer :
+#    - le log agent-salleA : "TIMEOUT détecté..."
+#    - le tableau de bord : SalleA_Temperature (et les 2 autres capteurs de la pièce) passent à rien/vide (UNDEF)
+#    - salleB et cuisine : AUCUN changement
+# 4. Relancer :
+java -jar sensor-simulator/target/sensor-simulator.jar salleA &
+# 5. Montrer la reprise : log "Reprise : messages MQTT reçus normalement à nouveau", tableau de bord revenu à des valeurs numériques.
+```
+
+**Questions probables** :
+
+- *"Comment le seuil de 30s est-il vérifié ?"* → un thread `watchdog` dédié dans chaque `AgentPiece`, vérifie toutes les 5s l'âge du dernier message.
+- *"Le coordinateur plante-t-il si un agent est en panne ?"* → non, `estEnTimeout()` est vérifiée avant de journaliser, mais `getTemperature()` continue de répondre avec la dernière valeur connue sans jamais bloquer.
+- *"Pourquoi le simulateur et pas juste l'agent ?"* → un vrai bug rencontré en pratique (voir piège #5, 7.6 du rapport) : le simulateur lui-même pouvait mourir sur une coupure réseau avant la correction.
+
+### 14.7 Rapport PDF (15 pts)
+
+Rien à démontrer en direct — s'assurer avant le jour J que `rapport/Rapport_SmartAgentIoT.pdf` est à jour (régénéré après le dernier changement de contenu), que les noms d'équipe et la date sont remplis, et que les captures d'écran sont insérées. Le relire une fois en entier : chaque affirmation doit pouvoir être défendue à l'oral si l'enseignante pose une question dessus.
+
+### 14.8 Démonstration (10 pts)
+
+Ordre recommandé (reprend le script de l'énoncé) :
+
+1. Lancer Mosquitto + openHAB + 3 agents RMI — *déjà fait avant le début si possible, pour ne pas perdre de temps live*.
+2. Montrer les mesures en temps réel (14.2).
+3. Montrer la règle d'économie d'énergie déjà déclenchée, ou forcer l'alerte (14.3).
+4. Créer un déséquilibre, montrer le coordinateur réagir (14.5).
+5. Couper un agent, montrer le timeout puis la reprise (14.6) — commencer TÔT dans la démo à cause du délai de 30s.
+6. Questions.
+
+**Conseil général pour "maîtrise du système"** : pour chaque bug mentionné dans les questions probables ci-dessus, savoir l'expliquer sans relire le code — ce sont les mêmes que la section 12 (Pièges) et la section 7 du rapport. Une réponse du type *"c'est un vrai bug qu'on a rencontré, voici pourquoi ça arrivait et comment on l'a corrigé"* démontre plus de maîtrise qu'une réponse parfaite sans accroc.

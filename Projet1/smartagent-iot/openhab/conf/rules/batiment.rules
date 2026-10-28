@@ -73,3 +73,18 @@ then
         }
     }
 end
+
+// --- Intégration coordinateur (S3) ---
+// Le CoordinateurBatiment (Java RMI) pousse chaque décision d'équilibrage sur
+// l'Item Batiment_Coordination via l'API REST openHAB. Cette règle réagit à ce
+// changement : elle matérialise le pont "coordinateur RMI -> règles openHAB"
+// demandé en Semaine 3. Ici on se contente de journaliser, mais c'est le point
+// d'extension naturel pour toute automatisation côté openHAB déclenchée par une
+// décision du coordinateur (notification, scène, etc.).
+
+rule "Coordination batiment"
+when
+    Item Batiment_Coordination changed
+then
+    logInfo("SmartAgentIoT", "Coordinateur (via REST): " + Batiment_Coordination.state)
+end

@@ -10,6 +10,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
@@ -81,6 +82,62 @@ class CoordinateurBatimentTest {
                 "une RemoteException sur une paire ne doit jamais remonter jusqu'à l'appelant (Tâche 3.1)");
         assertEquals(24.0, salleB.consigneRecue, 0.01,
                 "la paire salleB-cuisine doit quand même être traitée normalement malgré la panne de salleA");
+    }
+
+    @Test
+    void notifieOpenHabViaRestLorsDunDesequilibre() {
+        FauxOpenHab openhab = new FauxOpenHab();
+        FauxAgentPiece salleA = new FauxAgentPiece(28.0); // plus chaude
+        FauxAgentPiece salleB = new FauxAgentPiece(20.0); // écart = 8.0 > 4.0
+
+        Map<String, IAgentPiece> agents = new HashMap<>();
+        agents.put("salleA", salleA);
+        agents.put("salleB", salleB);
+        List<String[]> paires = List.<String[]>of(new String[]{"salleA", "salleB"});
+
+        new CoordinateurBatiment(agents, paires, openhab).equilibrerTemperatures();
+
+        assertEquals("Batiment_Coordination", openhab.dernierItem,
+                "une décision d'équilibrage doit être poussée sur l'Item openHAB via REST (S3)");
+        assertNotNull(openhab.derniereCommande, "la commande REST doit contenir le résumé de la décision");
+    }
+
+    @Test
+    void aucuneNotificationRestSousLeSeuil() {
+        FauxOpenHab openhab = new FauxOpenHab();
+        FauxAgentPiece salleA = new FauxAgentPiece(20.0);
+        FauxAgentPiece salleB = new FauxAgentPiece(22.0); // écart = 2.0 <= 4.0
+
+        Map<String, IAgentPiece> agents = new HashMap<>();
+        agents.put("salleA", salleA);
+        agents.put("salleB", salleB);
+        List<String[]> paires = List.<String[]>of(new String[]{"salleA", "salleB"});
+
+        new CoordinateurBatiment(agents, paires, openhab).equilibrerTemperatures();
+
+        assertNull(openhab.dernierItem, "aucune notification REST ne doit partir si aucun ajustement n'est fait");
+    }
+
+    /**
+     * Double de test pour OpenHabRestClient : enregistre le dernier appel au
+     * lieu d'émettre une vraie requête HTTP, pour tester l'intégration S3 sans
+     * openHAB en marche. Le constructeur parent crée un HttpClient mais celui-ci
+     * n'est jamais sollicité puisqu'on surcharge envoyerCommande().
+     */
+    static class FauxOpenHab extends OpenHabRestClient {
+        String dernierItem;
+        String derniereCommande;
+
+        FauxOpenHab() {
+            super("http://localhost:8080");
+        }
+
+        @Override
+        public boolean envoyerCommande(String item, String commande) {
+            this.dernierItem = item;
+            this.derniereCommande = commande;
+            return true;
+        }
     }
 
     private CoordinateurBatiment creerCoordinateur(FauxAgentPiece a, FauxAgentPiece b) {

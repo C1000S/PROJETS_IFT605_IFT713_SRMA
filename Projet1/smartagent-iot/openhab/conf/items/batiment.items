@@ -1,37 +1,79 @@
-// batiment.items — Tâche 1.2 (+ Tâche 3.1 : profil "expire")
+// batiment.items — Tâche 1.2 (+ Tâche 3.1 : métadonnée "expire")
+//                 (+ modèle sémantique pour la Main UI — vu en cours)
 //
 // Concept : un Item est la variable manipulable par l'UI et les règles.
 // Chaque Item est "lié" (binding) à exactement un canal du Thing correspondant
-// via { channel="..." }. Sans Item, un Thing/canal existe mais rien n'est
-// visible ni utilisable dans le tableau de bord ou les règles DSL.
+// via { channel="..." }.
 //
-// Tâche 3.1 — profil "expire" sur les 3 Items de CAPTEUR (pas le thermostat,
-// qui est une consigne que NOUS envoyons, pas une mesure) : si aucune mise à
-// jour n'arrive pendant 30s, openHAB force l'état à UNDEF automatiquement.
-// C'est la façon idiomatique openHAB de répondre à l'exigence "openHAB
-// affiche un état UNDEF sur l'Item correspondant" — aucun code Java requis
-// côté agent pour ce comportement précis, seulement pour sa DÉTECTION
-// (AgentPiece.estEnTimeout(), utilisée par le coordinateur).
+// MODÈLE SÉMANTIQUE (les "tags" entre crochets) — c'est ce qui transforme la
+// Main UI, vide avec de simples Items, en un tableau de bord riche généré
+// automatiquement (cartes de pièces/équipements, icônes, graphiques au clic).
+// On suit la hiérarchie canonique vue en cours :
+//
+//        Location (pièce)  ->  Equipment (équipement)  ->  Point (mesure/consigne)
+//        gSalleA [Room]        gSalleA_Capteurs [Sensor]    SalleA_Temperature ...
+//                              gSalleA_Thermostat [Radiator] SalleA_Thermostat ...
+//
+//   - Location  : une PIÈCE ["Room"] ; les pièces sont dans le bâtiment ["Building"].
+//   - Equipment : un dispositif ["Sensor"] (les 3 capteurs) / ["RadiatorControl"]
+//                 (le thermostat) ; il appartient à une pièce.
+//   - Point     : à quoi sert l'Item ["Measurement"|"Setpoint"|"Status"]
+//   - Property  : sur quoi il porte "Temperature" / "Light" / "Presence".
+//
+// Tâche 3.1 — métadonnée "expire" sur les 3 Items de CAPTEUR (pas le thermostat,
+// qui est une consigne que NOUS envoyons) : sans mise à jour pendant 30s,
+// openHAB force l'état à UNDEF automatiquement. ATTENTION : "expire" est une
+// MÉTADONNÉE d'Item (namespace expire=...), pas un "profile" de lien de canal —
+// il n'existe aucun profile nommé "expire". On écrit donc bien
+// { channel="...", expire="30s,state=UNDEF" } et surtout PAS profile="expire".
+
+// ============================================================================
+//  Niveau 1 — Localisations : Bâtiment > Pièces
+// ============================================================================
+Group  gBatiment  "Bâtiment"  <house>    ["Building"]
+
+Group  gSalleA    "Salle A"   <office>   (gBatiment)  ["Room"]
+Group  gSalleB    "Salle B"   <office>   (gBatiment)  ["Room"]
+Group  gCuisine   "Cuisine"   <kitchen>  (gBatiment)  ["Room"]
+
+// ============================================================================
+//  Niveau 2 — Équipements par pièce (capteurs + thermostat)
+// ============================================================================
+Group  gSalleA_Capteurs   "Capteurs"   <motion>    (gSalleA)   ["Sensor"]
+Group  gSalleA_Thermostat "Thermostat" <radiator>  (gSalleA)   ["RadiatorControl"]
+Group  gSalleB_Capteurs   "Capteurs"   <motion>    (gSalleB)   ["Sensor"]
+Group  gSalleB_Thermostat "Thermostat" <radiator>  (gSalleB)   ["RadiatorControl"]
+Group  gCuisine_Capteurs  "Capteurs"   <motion>    (gCuisine)  ["Sensor"]
+Group  gCuisine_Thermostat "Thermostat" <radiator> (gCuisine)  ["RadiatorControl"]
+
+// ============================================================================
+//  Niveau 3 — Points (rattachés à leur équipement, pas directement à la pièce)
+// ============================================================================
 
 // --- Salle A ---
-Number  SalleA_Temperature  "Salle A Température [%.1f °C]"   <temperature> (gTemperature) { channel="mqtt:topic:salleA:temperature", profile="expire", expire="30s,state=UNDEF" }
-Number  SalleA_Luminosite   "Salle A Luminosité [%d lux]"     <light>                       { channel="mqtt:topic:salleA:luminosite",  profile="expire", expire="30s,state=UNDEF" }
-Switch  SalleA_Occupation   "Salle A Occupée"                 <presence>    (gOccupation)   { channel="mqtt:topic:salleA:occupation",  profile="expire", expire="30s,state=UNDEF" }
-Number  SalleA_Thermostat   "Salle A Consigne [%.1f °C]"      <heating>                     { channel="mqtt:topic:salleA:thermostat" }
+Number  SalleA_Temperature  "Température [%.1f °C]"  <temperature>  (gSalleA_Capteurs)    ["Measurement","Temperature"]  { channel="mqtt:topic:salleA:temperature", expire="30s,state=UNDEF" }
+Number  SalleA_Luminosite   "Luminosité [%d lux]"    <light>        (gSalleA_Capteurs)    ["Measurement","Light"]        { channel="mqtt:topic:salleA:luminosite",  expire="30s,state=UNDEF" }
+Switch  SalleA_Occupation   "Occupée"                <presence>     (gSalleA_Capteurs)    ["Status","Presence"]          { channel="mqtt:topic:salleA:occupation",  expire="30s,state=UNDEF" }
+Number  SalleA_Thermostat   "Consigne [%.1f °C]"     <heating>      (gSalleA_Thermostat)  ["Setpoint","Temperature"]     { channel="mqtt:topic:salleA:thermostat" }
 
 // --- Salle B ---
-Number  SalleB_Temperature  "Salle B Température [%.1f °C]"   <temperature> (gTemperature) { channel="mqtt:topic:salleB:temperature", profile="expire", expire="30s,state=UNDEF" }
-Number  SalleB_Luminosite   "Salle B Luminosité [%d lux]"     <light>                       { channel="mqtt:topic:salleB:luminosite",  profile="expire", expire="30s,state=UNDEF" }
-Switch  SalleB_Occupation   "Salle B Occupée"                 <presence>    (gOccupation)   { channel="mqtt:topic:salleB:occupation",  profile="expire", expire="30s,state=UNDEF" }
-Number  SalleB_Thermostat   "Salle B Consigne [%.1f °C]"      <heating>                     { channel="mqtt:topic:salleB:thermostat" }
+Number  SalleB_Temperature  "Température [%.1f °C]"  <temperature>  (gSalleB_Capteurs)    ["Measurement","Temperature"]  { channel="mqtt:topic:salleB:temperature", expire="30s,state=UNDEF" }
+Number  SalleB_Luminosite   "Luminosité [%d lux]"    <light>        (gSalleB_Capteurs)    ["Measurement","Light"]        { channel="mqtt:topic:salleB:luminosite",  expire="30s,state=UNDEF" }
+Switch  SalleB_Occupation   "Occupée"                <presence>     (gSalleB_Capteurs)    ["Status","Presence"]          { channel="mqtt:topic:salleB:occupation",  expire="30s,state=UNDEF" }
+Number  SalleB_Thermostat   "Consigne [%.1f °C]"     <heating>      (gSalleB_Thermostat)  ["Setpoint","Temperature"]     { channel="mqtt:topic:salleB:thermostat" }
 
 // --- Cuisine ---
-Number  Cuisine_Temperature "Cuisine Température [%.1f °C]"   <temperature> (gTemperature) { channel="mqtt:topic:cuisine:temperature", profile="expire", expire="30s,state=UNDEF" }
-Number  Cuisine_Luminosite  "Cuisine Luminosité [%d lux]"     <light>                       { channel="mqtt:topic:cuisine:luminosite",  profile="expire", expire="30s,state=UNDEF" }
-Switch  Cuisine_Occupation  "Cuisine Occupée"                 <presence>    (gOccupation)   { channel="mqtt:topic:cuisine:occupation",  profile="expire", expire="30s,state=UNDEF" }
-Number  Cuisine_Thermostat  "Cuisine Consigne [%.1f °C]"      <heating>                     { channel="mqtt:topic:cuisine:thermostat" }
+Number  Cuisine_Temperature "Température [%.1f °C]"  <temperature>  (gCuisine_Capteurs)   ["Measurement","Temperature"]  { channel="mqtt:topic:cuisine:temperature", expire="30s,state=UNDEF" }
+Number  Cuisine_Luminosite  "Luminosité [%d lux]"    <light>        (gCuisine_Capteurs)   ["Measurement","Light"]        { channel="mqtt:topic:cuisine:luminosite",  expire="30s,state=UNDEF" }
+Switch  Cuisine_Occupation  "Occupée"                <presence>     (gCuisine_Capteurs)   ["Status","Presence"]          { channel="mqtt:topic:cuisine:occupation",  expire="30s,state=UNDEF" }
+Number  Cuisine_Thermostat  "Consigne [%.1f °C]"     <heating>      (gCuisine_Thermostat) ["Setpoint","Temperature"]     { channel="mqtt:topic:cuisine:thermostat" }
 
-// Groupes pratiques pour l'UI (tableau de bord) et pour cibler plusieurs
-// items d'un coup si besoin dans une règle.
-Group gTemperature "Températures du bâtiment"
-Group gOccupation  "Occupation des pièces"
+// ============================================================================
+//  Supervision — Item piloté par le CoordinateurBatiment via l'API REST (S3)
+// ============================================================================
+// Item SANS canal MQTT : il n'est jamais alimenté par un capteur. C'est le
+// CoordinateurBatiment (programme Java RMI) qui y pousse le résumé de sa
+// dernière décision d'équilibrage par un POST REST openHAB
+// (POST /rest/items/Batiment_Coordination). Son changement d'état déclenche la
+// règle DSL "Coordination batiment" — c'est le pont coordinateur ↔ règles openHAB.
+String  Batiment_Coordination  "Dernière décision du coordinateur [%s]"  <text>  (gBatiment)  ["Status"]
