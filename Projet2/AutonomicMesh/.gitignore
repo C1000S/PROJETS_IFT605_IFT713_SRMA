@@ -1,0 +1,22 @@
+# Fichiers compilés Maven
+**/target/
+
+# Journaux et fichiers générés
+logs/*.log
+logs/routes.properties
+*.tmp
+
+# Fichiers IDE
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers temporaires
+*.log
