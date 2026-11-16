@@ -1,0 +1,6 @@
+===== Résumé chaos [test-degrade] =====
+Pannes réelles injectées      : 1 (récupérées : 1)
+MTTR moyen depuis la panne    : 13417 ms
+MTTR moyen depuis la détection: 436 ms
+Taux de détection (<= 15 s)   : 100 % (1/1)
+Cycles MAPE-K moyens          : 2.0

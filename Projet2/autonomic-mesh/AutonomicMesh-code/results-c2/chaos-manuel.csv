@@ -1,0 +1,11 @@
+iteration,label,scenario,service,instance,t_panne_iso,delai_detection_ms,detecte_15s,action,mttr_depuis_panne_ms,mttr_depuis_detection_ms,cycles_mapek,faux_positif
+1,manuel,KILL,notif,notif-1,2026-11-11T03:22:25.411Z,6309,true,REDEMARRER,56713,50404,7,
+2,manuel,KILL,storage,storage-1,2026-11-11T03:23:59.156Z,2547,true,REDEMARRER,55777,53230,7,
+3,manuel,KILL,storage,storage-1,2026-11-11T03:25:31.942Z,9759,true,REDEMARRER,81800,72041,9,
+4,manuel,KILL,notif,notif-1,2026-11-11T03:27:30.768Z,10930,true,REDEMARRER,74709,63779,8,
+5,manuel,KILL,calc,calc-1,2026-11-11T03:29:22.487Z,9225,true,REDEMARRER,59826,50601,7,
+6,manuel,KILL,storage,storage-1,2026-11-11T03:30:59.336Z,2375,true,REDEMARRER,59845,57470,7,
+7,manuel,KILL,notif,notif-1,2026-11-11T03:32:36.231Z,5482,true,REDEMARRER,59122,53640,7,
+8,manuel,KILL,calc,calc-1,2026-11-11T03:34:12.378Z,9333,true,REDEMARRER,78945,69612,9,
+9,manuel,KILL,calc,calc-1,2026-11-11T03:36:08.344Z,13356,true,REDEMARRER,69227,55871,8,
+10,manuel,KILL,calc,calc-1,2026-11-11T03:37:54.595Z,7107,true,REDEMARRER,69293,62186,8,

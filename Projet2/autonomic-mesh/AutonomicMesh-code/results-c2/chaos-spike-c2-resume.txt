@@ -1,0 +1,7 @@
+===== Résumé chaos [spike-c2] =====
+Pannes réelles injectées      : 0 (récupérées : 0)
+MTTR moyen depuis la panne    : NaN ms
+MTTR moyen depuis la détection: NaN ms
+Taux de détection (<= 15 s)   : n/a
+Cycles MAPE-K moyens          : NaN
+Faux positifs (pics)          : 0/5
