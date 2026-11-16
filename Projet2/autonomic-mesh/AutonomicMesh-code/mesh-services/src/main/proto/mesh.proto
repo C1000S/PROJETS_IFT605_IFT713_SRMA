@@ -1,0 +1,158 @@
+// mesh.proto — contrats communs d'AutonomicMesh (IFT605/IFT713)
+//
+// Contenu :
+//   - HealthCheck universel (SERVING / DEGRADED / DOWN) exposé par chaque service
+//   - 3 micro-services métier : CalcService, StorageService, NotifService
+//   - ChaosControl : injection de fautes (latence, surcharge CPU, indisponibilité)
+//   - RegistryService : exposé par le gestionnaire autonome (résolution du routage
+//     et liste des instances à sonder)
+
+syntax = "proto3";
+
+package mesh;
+
+option java_package = "ca.usherbrooke.ift605.mesh.proto";
+option java_outer_classname = "MeshProto";
+option java_multiple_files = true;
+
+// ───────────────────────── Health check universel ─────────────────────────
+
+enum ServingStatus {
+  STATUS_UNKNOWN = 0; // valeur par défaut proto3, jamais renvoyée volontairement
+  SERVING = 1;        // service sain
+  DEGRADED = 2;       // service vivant mais lent ou surchargé
+  DOWN = 3;           // service vivant mais incapable de servir (ou injoignable côté sonde)
+}
+
+message HealthReq {
+  string serviceName = 1;
+}
+
+message HealthResp {
+  ServingStatus status = 1;
+  int64 uptimeMs = 2;
+  double cpuLoad = 3;      // 0.0 à 1.0
+  string instanceId = 4;   // ex. calc-1, calc-backup
+}
+
+// ───────────────────────── Service de calcul ─────────────────────────
+
+service CalcService {
+  rpc Compute(CalcRequest) returns (CalcResponse);
+  rpc HealthCheck(HealthReq) returns (HealthResp);
+}
+
+message CalcRequest {
+  double a = 1;
+  double b = 2;
+  string op = 3; // "+", "-", "*", "/"
+}
+
+message CalcResponse {
+  double result = 1;
+  int64 latencyMs = 2;
+  string instanceId = 3;
+}
+
+// ───────────────────────── Service de stockage ─────────────────────────
+
+service StorageService {
+  rpc Put(PutRequest) returns (PutResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc HealthCheck(HealthReq) returns (HealthResp);
+}
+
+message PutRequest {
+  string key = 1;
+  string value = 2;
+}
+
+message PutResponse {
+  bool stored = 1;
+  string instanceId = 2;
+}
+
+message GetRequest {
+  string key = 1;
+}
+
+message GetResponse {
+  bool found = 1;
+  string value = 2;
+  string instanceId = 3;
+}
+
+// ───────────────────────── Service de notification ─────────────────────────
+
+service NotifService {
+  rpc Notify(NotifRequest) returns (NotifResponse);
+  rpc HealthCheck(HealthReq) returns (HealthResp);
+}
+
+message NotifRequest {
+  string event = 1;
+  string payload = 2;
+}
+
+message NotifResponse {
+  bool accepted = 1;
+  string instanceId = 2;
+}
+
+// ───────────────────────── Injection de fautes (chaos) ─────────────────────────
+
+enum FaultType {
+  FAULT_NONE = 0;
+  LATENCY = 1;       // ajoute latencyMs à chaque appel
+  CPU_OVERLOAD = 2;  // la charge CPU rapportée devient cpuLoad
+  UNAVAILABLE = 3;   // le service répond DOWN et refuse les appels métier
+  CLEAR = 4;         // annule toute faute active
+}
+
+message FaultRequest {
+  FaultType type = 1;
+  int64 latencyMs = 2;
+  double cpuLoad = 3;
+  int32 durationSec = 4; // 0 = jusqu'à CLEAR ou redémarrage
+}
+
+message FaultResponse {
+  bool applied = 1;
+  string detail = 2;
+}
+
+service ChaosControl {
+  rpc InjectFault(FaultRequest) returns (FaultResponse);
+}
+
+// ───────────────────────── Registre (exposé par le gestionnaire) ─────────────────────────
+
+message ResolveRequest {
+  string service = 1; // nom logique : calc, storage, notif
+}
+
+message ResolveResponse {
+  bool found = 1;
+  string instanceId = 2;
+  string host = 3;
+  int32 port = 4;
+}
+
+message ListInstancesRequest {}
+
+message InstanceDescriptor {
+  string instanceId = 1;
+  string service = 2;
+  string host = 3;
+  int32 port = 4;
+  string role = 5; // PRIMAIRE, SECOURS, REPLIQUE
+}
+
+message ListInstancesResponse {
+  repeated InstanceDescriptor instances = 1;
+}
+
+service RegistryService {
+  rpc Resolve(ResolveRequest) returns (ResolveResponse);
+  rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
+}

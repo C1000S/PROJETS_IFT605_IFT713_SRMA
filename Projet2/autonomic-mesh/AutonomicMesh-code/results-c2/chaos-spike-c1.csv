@@ -1,0 +1,6 @@
+iteration,label,scenario,service,instance,t_panne_iso,delai_detection_ms,detecte_15s,action,mttr_depuis_panne_ms,mttr_depuis_detection_ms,cycles_mapek,faux_positif
+1,spike-c1,SPIKE,storage,storage-1,2026-11-11T03:11:40.672Z,-1,false,,3798,-1,-1,false
+2,spike-c1,SPIKE,storage,storage-1,2026-11-11T03:12:42.728Z,-1,false,,3712,-1,-1,false
+3,spike-c1,SPIKE,notif,notif-1,2026-11-11T03:13:44.772Z,5896,true,REACHEMINEMENT,3745,0,2,true
+4,spike-c1,SPIKE,notif,notif-1,2026-11-11T03:14:46.813Z,-1,false,,3740,-1,-1,false
+5,spike-c1,SPIKE,notif,notif-1,2026-11-11T03:15:48.840Z,-1,false,,3740,-1,-1,false

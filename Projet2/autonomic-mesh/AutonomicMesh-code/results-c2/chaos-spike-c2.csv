@@ -1,0 +1,6 @@
+iteration,label,scenario,service,instance,t_panne_iso,delai_detection_ms,detecte_15s,action,mttr_depuis_panne_ms,mttr_depuis_detection_ms,cycles_mapek,faux_positif
+1,spike-c2,SPIKE,calc,calc-1,2026-11-11T03:43:02.329Z,-1,false,,3777,-1,-1,false
+2,spike-c2,SPIKE,calc,calc-1,2026-11-11T03:44:04.367Z,-1,false,,3750,-1,-1,false
+3,spike-c2,SPIKE,notif,notif-1,2026-11-11T03:45:06.418Z,-1,false,,3778,-1,-1,false
+4,spike-c2,SPIKE,storage,storage-1,2026-11-11T03:46:08.451Z,-1,false,,3759,-1,-1,false
+5,spike-c2,SPIKE,notif,notif-1,2026-11-11T03:47:10.487Z,-1,false,,3728,-1,-1,false

@@ -1,0 +1,2 @@
+iteration,label,scenario,service,instance,t_panne_iso,delai_detection_ms,detecte_15s,action,mttr_depuis_panne_ms,mttr_depuis_detection_ms,cycles_mapek,faux_positif
+1,test-degrade,DEGRADE,notif,notif-1,2026-11-11T02:44:37.694Z,12981,true,REACHEMINEMENT,13417,436,2,

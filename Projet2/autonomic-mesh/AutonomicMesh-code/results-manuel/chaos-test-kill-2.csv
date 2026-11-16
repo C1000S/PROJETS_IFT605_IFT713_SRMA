@@ -1,0 +1,2 @@
+iteration,label,scenario,service,instance,t_panne_iso,delai_detection_ms,detecte_15s,action,mttr_depuis_panne_ms,mttr_depuis_detection_ms,cycles_mapek,faux_positif
+1,test-kill-2,KILL,storage,storage-1,2026-11-11T02:30:24.902Z,5783,true,REACHEMINEMENT,5893,110,2,

@@ -1,0 +1,11 @@
+iteration,label,scenario,service,instance,t_panne_iso,delai_detection_ms,detecte_15s,action,mttr_depuis_panne_ms,mttr_depuis_detection_ms,cycles_mapek,faux_positif
+1,auto-37,KILL,storage,storage-1,2026-11-11T03:00:35.346Z,5332,true,REACHEMINEMENT,5618,286,2,
+2,auto-37,KILL,calc,calc-1,2026-11-11T03:01:17.992Z,2684,true,REACHEMINEMENT,2942,258,2,
+3,auto-37,KILL,calc,calc-1,2026-11-11T03:01:57.951Z,2719,true,REACHEMINEMENT,2902,183,2,
+4,auto-37,KILL,notif,notif-1,2026-11-11T03:02:37.870Z,2807,true,REACHEMINEMENT,2962,155,2,
+5,auto-37,KILL,notif,notif-1,2026-11-11T03:03:17.860Z,2807,true,REACHEMINEMENT,3004,197,2,
+6,auto-37,KILL,notif,notif-1,2026-11-11T03:03:57.895Z,2776,true,REACHEMINEMENT,2946,170,2,
+7,auto-37,KILL,storage,storage-1,2026-11-11T03:04:37.865Z,12817,true,REACHEMINEMENT,13067,250,2,
+8,auto-37,KILL,storage,storage-1,2026-11-11T03:05:27.958Z,12715,true,REACHEMINEMENT,12909,194,2,
+9,auto-37,KILL,notif,notif-1,2026-11-11T03:06:17.901Z,2774,true,REACHEMINEMENT,3036,262,2,
+10,auto-37,KILL,notif,notif-1,2026-11-11T03:06:57.950Z,2734,true,REACHEMINEMENT,2984,250,2,
